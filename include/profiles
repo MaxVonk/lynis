@@ -191,6 +191,20 @@
                     AddSetting "developer" "${DEVELOPER_MODE}" "Developer mode"
                 ;;
 
+                # Automatic database update
+                auto-update-db | auto_update_db)
+                    FIND=$(echo "${VALUE}" | grep -E "^(1|true|yes)") && AUTO_UPDATE_DB=1
+                    Debug "Automatic database update set to ${AUTO_UPDATE_DB}"
+                    AddSetting "auto-update-db" "${AUTO_UPDATE_DB}" "Automatically update databases and signatures before audit"
+                ;;
+
+                # Custom database update URL
+                db-update-url | db_update_url)
+                    if [ -n "${VALUE}" ]; then DB_UPDATE_URL="${VALUE}"; fi
+                    Debug "Database update URL set to ${DB_UPDATE_URL}"
+                    AddSetting "db-update-url" "${DB_UPDATE_URL}" "Database and signatures update URL"
+                ;;
+
                 # Show non-zero exit code when errors are found
                 error-on-warnings)
                     FIND=$(echo "${VALUE}" | grep -E "^(1|true|yes)") && ERROR_ON_WARNINGS=1

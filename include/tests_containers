@@ -220,6 +220,76 @@
 #
 #################################################################################
 #
+    # Test        : CONT-8110
+    # Description : Check Docker daemon configuration security
+    # Notes       : Inspect /etc/docker/daemon.json for recommended hardening settings
+    if [ -f "${ROOTDIR}etc/docker/daemon.json" ]; then PREQS_MET="YES"; else PREQS_MET="NO"; fi
+    Register --test-no CONT-8110 --preqs-met ${PREQS_MET} --weight L --network NO --category security --description "Check Docker daemon security configuration"
+    if [ ${SKIPTEST} -eq 0 ]; then
+        DOCKER_CONFIG="${ROOTDIR}etc/docker/daemon.json"
+        LogText "Test: checking Docker daemon configuration ${DOCKER_CONFIG}"
+        Display --indent 4 --text "- Docker daemon configuration"
+
+        # Check no-new-privileges
+        FIND=$(${GREPBINARY} -i '"no-new-privileges"[[:space:]]*:[[:space:]]*true' "${DOCKER_CONFIG}" 2>/dev/null)
+        if [ -n "${FIND}" ]; then
+            Display --indent 6 --text "- no-new-privileges option" --result "${STATUS_ENABLED}" --color GREEN
+            LogText "Result: Docker no-new-privileges enabled"
+            Report "docker_no_new_privileges=1"
+            AddHP 2 2
+        else
+            Display --indent 6 --text "- no-new-privileges option" --result "${STATUS_DISABLED}" --color YELLOW
+            LogText "Result: Docker no-new-privileges not enabled in daemon.json"
+            ReportSuggestion "${TEST_NO}" "Enable 'no-new-privileges' in Docker daemon.json to restrict container privilege escalation"
+            Report "docker_no_new_privileges=0"
+            AddHP 0 2
+        fi
+
+        # Check user namespace remapping
+        FIND=$(${GREPBINARY} -i '"userns-remap"' "${DOCKER_CONFIG}" 2>/dev/null)
+        if [ -n "${FIND}" ]; then
+            Display --indent 6 --text "- userns-remap option" --result "${STATUS_ENABLED}" --color GREEN
+            LogText "Result: Docker userns-remap configured"
+            Report "docker_userns_remap=1"
+            AddHP 2 2
+        else
+            Display --indent 6 --text "- userns-remap option" --result "${STATUS_DISABLED}" --color WHITE
+            LogText "Result: Docker userns-remap not configured"
+            ReportSuggestion "${TEST_NO}" "Configure 'userns-remap' in Docker daemon.json for user namespace isolation"
+            Report "docker_userns_remap=0"
+            AddHP 0 2
+        fi
+
+        # Check live-restore
+        FIND=$(${GREPBINARY} -i '"live-restore"[[:space:]]*:[[:space:]]*true' "${DOCKER_CONFIG}" 2>/dev/null)
+        if [ -n "${FIND}" ]; then
+            Display --indent 6 --text "- live-restore option" --result "${STATUS_ENABLED}" --color GREEN
+            LogText "Result: Docker live-restore enabled"
+            Report "docker_live_restore=1"
+            AddHP 1 1
+        else
+            Display --indent 6 --text "- live-restore option" --result "${STATUS_DISABLED}" --color WHITE
+            Report "docker_live_restore=0"
+            AddHP 0 1
+        fi
+    fi
+#
+#################################################################################
+#
+    # Test        : CONT-8112
+    # Description : Check Podman container runtime status
+    if [ -x "${ROOTDIR}usr/bin/podman" -o -x "${ROOTDIR}usr/local/bin/podman" ]; then PREQS_MET="YES"; else PREQS_MET="NO"; fi
+    Register --test-no CONT-8112 --preqs-met ${PREQS_MET} --weight L --network NO --category security --description "Check Podman container engine"
+    if [ ${SKIPTEST} -eq 0 ]; then
+        LogText "Test: checking for Podman container engine"
+        Display --indent 4 --text "- Podman"
+        Display --indent 6 --text "- Podman engine installed" --result "${STATUS_FOUND}" --color GREEN
+        Report "podman_installed=1"
+        AddHP 2 2
+    fi
+#
+#################################################################################
+#
 
 WaitForKeyPress
 

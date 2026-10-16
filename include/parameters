@@ -185,6 +185,7 @@
                     echo "Examples:"
                     echo "lynis update check"
                     echo "lynis update info"
+                    echo "lynis update db"
                     ExitFatal
                 fi
             ;;
@@ -210,6 +211,57 @@
             --auditor)
                 shift
                 AUDITORNAME=$1
+            ;;
+
+            # Automatic database update
+            --auto-update-db | --update-db)
+                AUTO_UPDATE_DB=1
+            ;;
+
+            # JSON report output
+            --json)
+                OUTPUT_JSON=1
+                if [ $# -gt 1 ]; then
+                    NEXT_ARG=$(echo "$2" | cut -c1)
+                    if [ "${NEXT_ARG}" != "-" ]; then
+                        shift
+                        JSON_REPORTFILE="$1"
+                    fi
+                fi
+            ;;
+
+            # SARIF report output (for GitHub Code Scanning, GitLab, CI/CD)
+            --sarif)
+                OUTPUT_SARIF=1
+                if [ $# -gt 1 ]; then
+                    NEXT_ARG=$(echo "$2" | cut -c1)
+                    if [ "${NEXT_ARG}" != "-" ]; then
+                        shift
+                        SARIF_REPORTFILE="$1"
+                    fi
+                fi
+            ;;
+
+            # Report format selection
+            --format)
+                if [ $# -gt 1 ]; then
+                    shift
+                    case "$1" in
+                        json)
+                            OUTPUT_JSON=1
+                        ;;
+                        sarif)
+                            OUTPUT_SARIF=1
+                        ;;
+                        json,sarif|sarif,json)
+                            OUTPUT_JSON=1
+                            OUTPUT_SARIF=1
+                        ;;
+                        *)
+                            echo "Unknown format: $1. Supported formats: json, sarif"
+                        ;;
+                    esac
+                fi
             ;;
 
             # Binary directories (useful for incident response)

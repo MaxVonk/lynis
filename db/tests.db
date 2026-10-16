@@ -90,6 +90,8 @@ CONT-8104:test:security:containers::Checking Docker info for any warnings:
 CONT-8106:test:security:containers::Gather basic stats from Docker:
 CONT-8107:test:performance:containers::Check number of unused Docker containers:
 CONT-8108:test:security:containers::Check file permissions for Docker files:
+CONT-8110:test:security:containers::Check Docker daemon security configuration:
+CONT-8112:test:security:containers::Check Podman container engine:
 CORE-1000:test:performance:system_integrity::Check all system binaries:
 CRYP-7902:test:security:crypto::Check expire date of SSL certificates:
 CRYP-7930:test:security:crypto:Linux:Determine if system uses LUKS encryption:
@@ -363,6 +365,7 @@ PKGS-7392:test:security:ports_packages:Linux:Check for Debian/Ubuntu security up
 PKGS-7393:test:security:ports_packages::Check for Gentoo vulnerable packages:
 PKGS-7394:test:security:ports_packages:Linux:Check for Ubuntu updates:
 PKGS-7395:test:security:ports_packages:Linux:Check Alpine upgradeable packages:
+PKGS-7396:test:security:ports_packages:Linux:Check for deprecated APT trusted.gpg keyring:
 PKGS-7398:test:security:ports_packages::Check for package audit tool:
 PKGS-7410:test:security:ports_packages::Count installed kernel packages:
 PKGS-7420:test:security:ports_packages::Detect toolkit to automatically download and apply upgrades:

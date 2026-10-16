@@ -3766,4 +3766,139 @@
         if IsDeveloperMode; then Debug "Warning: old ShowResult() function is used. Please replace any reference with WaitForKeyPress."; fi
     }
 
+
+    ################################################################################
+    # Name        : UpdateDatabases()
+    # Description : Automatically fetch and update database and language files
+    #
+    # Parameters  : <none>
+    # Returns     : 0 on success or skipped, 1 on error
+    ################################################################################
+
+    UpdateDatabases() {
+        LogText "Starting database update from: ${DB_UPDATE_URL}"
+
+        # Check if DBDIR is defined and directory exists
+        if [ -z "${DBDIR}" ] || [ ! -d "${DBDIR}" ]; then
+            LogText "Error: DBDIR (${DBDIR}) does not exist. Cannot update databases."
+            Display --indent 4 --text "- Database update" --result "${STATUS_ERROR}" --color RED
+            return 1
+        fi
+
+        # Check if DBDIR is writable
+        if [ ! -w "${DBDIR}" ]; then
+            LogText "Warning: DBDIR (${DBDIR}) is not writable. Skipping automatic database update."
+            Display --indent 4 --text "- Database update (no write permission)" --result "${STATUS_SKIPPED}" --color YELLOW
+            return 0
+        fi
+
+        # Determine download tool
+        DOWNLOAD_CMD=""
+        if [ -n "${CURLBINARY}" ] && [ -x "${CURLBINARY}" ]; then
+            DOWNLOAD_CMD="${CURLBINARY} -s -f -m 15 -L"
+        elif [ -n "${WGETBINARY}" ] && [ -x "${WGETBINARY}" ]; then
+            DOWNLOAD_CMD="${WGETBINARY} -q -T 15 -O -"
+        elif command -v curl > /dev/null 2>&1; then
+            DOWNLOAD_CMD="$(command -v curl) -s -f -m 15 -L"
+        elif command -v wget > /dev/null 2>&1; then
+            DOWNLOAD_CMD="$(command -v wget) -q -T 15 -O -"
+        fi
+
+        if [ -z "${DOWNLOAD_CMD}" ]; then
+            LogText "Warning: neither curl nor wget found. Cannot perform automatic database update."
+            Display --indent 4 --text "- Database update (curl/wget not found)" --result "${STATUS_SKIPPED}" --color YELLOW
+            return 0
+        fi
+
+        DB_UPDATE_FILES="malware.db malware-susp.db fileperms.db software-eol.db hints.db tests.db control-links.db integrity.db"
+
+        # Language files to update (en and active language if different)
+        DB_LANG_FILES="en"
+        if [ -n "${LANGUAGE}" ] && [ "${LANGUAGE}" != "en" ]; then
+            DB_LANG_FILES="${DB_LANG_FILES} ${LANGUAGE}"
+        fi
+
+        UPDATED_COUNT=0
+        CHECKED_COUNT=0
+        FAILED_COUNT=0
+
+        for DB_FILE in ${DB_UPDATE_FILES}; do
+            CHECKED_COUNT=$((CHECKED_COUNT + 1))
+            TARGET_FILE="${DBDIR}/${DB_FILE}"
+            REMOTE_URL="${DB_UPDATE_URL}/${DB_FILE}"
+            CreateTempFile
+            TEMP_DL="${TEMP_FILE}"
+
+            ${DOWNLOAD_CMD} "${REMOTE_URL}" > "${TEMP_DL}" 2> /dev/null
+            if [ $? -eq 0 ] && [ -s "${TEMP_DL}" ]; then
+                FIRST_LINE=$(head -n 1 "${TEMP_DL}" 2> /dev/null)
+                case "${FIRST_LINE}" in
+                    *"<html"*|*"<!DOCTYPE"*|*"<HTML"*|*"404: Not Found"*)
+                        LogText "Warning: received HTML/404 response for ${REMOTE_URL}"
+                        FAILED_COUNT=$((FAILED_COUNT + 1))
+                    ;;
+                    *)
+                        if [ ! -f "${TARGET_FILE}" ] || ! cmp -s "${TEMP_DL}" "${TARGET_FILE}" 2> /dev/null; then
+                            cp "${TEMP_DL}" "${TARGET_FILE}"
+                            chmod 644 "${TARGET_FILE}" 2> /dev/null
+                            UPDATED_COUNT=$((UPDATED_COUNT + 1))
+                            LogText "Result: successfully updated ${DB_FILE}"
+                            Display --indent 4 --text "- Updating ${DB_FILE}" --result "${STATUS_UPDATED}" --color GREEN
+                        else
+                            LogText "Result: ${DB_FILE} is up-to-date"
+                        fi
+                    ;;
+                esac
+            else
+                FAILED_COUNT=$((FAILED_COUNT + 1))
+                LogText "Warning: could not download ${REMOTE_URL}"
+            fi
+            rm -f "${TEMP_DL}"
+        done
+
+        # Handle language files in ${DBDIR}/languages/
+        if [ -d "${DBDIR}/languages" ] && [ -w "${DBDIR}/languages" ]; then
+            for LANG_FILE in ${DB_LANG_FILES}; do
+                CHECKED_COUNT=$((CHECKED_COUNT + 1))
+                TARGET_LANG_FILE="${DBDIR}/languages/${LANG_FILE}"
+                REMOTE_LANG_URL="${DB_UPDATE_URL}/languages/${LANG_FILE}"
+                CreateTempFile
+                TEMP_DL="${TEMP_FILE}"
+
+                ${DOWNLOAD_CMD} "${REMOTE_LANG_URL}" > "${TEMP_DL}" 2> /dev/null
+                if [ $? -eq 0 ] && [ -s "${TEMP_DL}" ]; then
+                    FIRST_LINE=$(head -n 1 "${TEMP_DL}" 2> /dev/null)
+                    case "${FIRST_LINE}" in
+                        *"<html"*|*"<!DOCTYPE"*|*"<HTML"*|*"404: Not Found"*)
+                            LogText "Warning: received HTML/404 response for ${REMOTE_LANG_URL}"
+                            FAILED_COUNT=$((FAILED_COUNT + 1))
+                        ;;
+                        *)
+                            if [ ! -f "${TARGET_LANG_FILE}" ] || ! cmp -s "${TEMP_DL}" "${TARGET_LANG_FILE}" 2> /dev/null; then
+                                cp "${TEMP_DL}" "${TARGET_LANG_FILE}"
+                                chmod 644 "${TARGET_LANG_FILE}" 2> /dev/null
+                                UPDATED_COUNT=$((UPDATED_COUNT + 1))
+                                LogText "Result: successfully updated language ${LANG_FILE}"
+                                Display --indent 4 --text "- Updating language ${LANG_FILE}" --result "${STATUS_UPDATED}" --color GREEN
+                            else
+                                LogText "Result: language ${LANG_FILE} is up-to-date"
+                            fi
+                        ;;
+                    esac
+                fi
+                rm -f "${TEMP_DL}"
+            done
+        fi
+
+        LogText "Database update finished: ${UPDATED_COUNT} updated, ${CHECKED_COUNT} checked, ${FAILED_COUNT} failed"
+        Report "db_auto_updated_files=${UPDATED_COUNT}"
+        Report "db_auto_checked_files=${CHECKED_COUNT}"
+        if [ ${UPDATED_COUNT} -gt 0 ]; then
+            Display --indent 2 --text "- Databases and signatures updated" --result "${STATUS_OK}" --color GREEN
+        else
+            Display --indent 2 --text "- Databases and signatures check" --result "${STATUS_UP_TO_DATE}" --color GREEN
+        fi
+        return 0
+    }
+
 # EOF

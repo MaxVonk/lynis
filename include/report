@@ -345,4 +345,29 @@
         echo "================================================================================"
     fi
 
+    # Convert report to JSON or SARIF if requested
+    if [ ${OUTPUT_JSON} -eq 1 ] || [ ${OUTPUT_SARIF} -eq 1 ]; then
+        CONVERTER="${INCLUDEDIR}/../extras/lynis-report-converter.sh"
+        if [ -f "${CONVERTER}" ] && [ -f "${REPORTFILE}" ]; then
+            if [ ${OUTPUT_JSON} -eq 1 ]; then
+                if [ -z "${JSON_REPORTFILE}" ]; then
+                    JSON_REPORTFILE="${REPORTFILE}.json"
+                fi
+                sh "${CONVERTER}" -i "${REPORTFILE}" -o "${JSON_REPORTFILE}" -f json 2>/dev/null
+                if [ $? -eq 0 ]; then
+                    echo "  - JSON report data                : ${WHITE}${JSON_REPORTFILE}${NORMAL}"
+                fi
+            fi
+            if [ ${OUTPUT_SARIF} -eq 1 ]; then
+                if [ -z "${SARIF_REPORTFILE}" ]; then
+                    SARIF_REPORTFILE="${REPORTFILE}.sarif"
+                fi
+                sh "${CONVERTER}" -i "${REPORTFILE}" -o "${SARIF_REPORTFILE}" -f sarif 2>/dev/null
+                if [ $? -eq 0 ]; then
+                    echo "  - SARIF report data (GitHub/CI)   : ${WHITE}${SARIF_REPORTFILE}${NORMAL}"
+                fi
+            fi
+        fi
+    fi
+
 # EOF

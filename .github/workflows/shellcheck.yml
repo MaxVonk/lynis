@@ -1,0 +1,35 @@
+name: ShellCheck Linting & Code Quality
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: ShellCheck main executable
+        run: |
+          shellcheck -s sh -e SC1090,SC1091,SC2034,SC2154 lynis
+
+      - name: ShellCheck extras and converter
+        run: |
+          shellcheck -s sh -e SC1090,SC1091,SC2034,SC2154 extras/lynis-report-converter.sh
+
+      - name: ShellCheck include modules
+        run: |
+          find include -maxdepth 1 -type f -not -name "*.template" -exec shellcheck -s sh -e SC1090,SC1091,SC2034,SC2154 {} +
+
+      - name: ShellCheck plugins
+        run: |
+          find plugins -maxdepth 1 -type f -not -name "*.template" -not -name "README" -exec shellcheck -s sh -e SC1090,SC1091,SC2034,SC2154 {} +
+

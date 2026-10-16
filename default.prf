@@ -45,6 +45,12 @@ compressed-uploads=yes
 # Show non-zero exit code when warnings are found
 error-on-warnings=no
 
+# Automatically update databases and signatures before auditing (yes/no)
+#auto-update-db=yes
+
+# Custom URL to fetch database updates (defaults to repository URL)
+#db-update-url=https://raw.githubusercontent.com/MaxVonk/lynis/master/db
+
 # Use Lynis in your own language (by default auto-detected)
 language=
 

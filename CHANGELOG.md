@@ -3,9 +3,16 @@
 ## Lynis 3.1.8 (not released yet)
 
 ### Added
+- Automatic database and signatures updater via 'lynis update db' and '--auto-update-db' flag
+- Native JSON and SARIF v2.1.0 report converter ('extras/lynis-report-converter.sh', '--json', '--sarif')
+- CONT-8110 - Check Docker daemon security configuration in /etc/docker/daemon.json
+- CONT-8112 - Check Podman container runtime status
+- PKGS-7396 - Check for deprecated APT trusted.gpg keyring on Debian/Ubuntu
+- Automated ShellCheck CI workflow in GitHub Actions
 - Support for Omarchy Linux and poky-altcfg
 
 ### Changed
+- BOOT-5264 - Record systemd-analyze security service exposure scores into report and hardening index
 - AUTH-9230 - skip SHA_CRYPT rounds check when ENCRYPT_METHOD is YESCRYPT
 - PKGS-7370 - Strip quotes from CRON_CHECK in debsums test
 - Adjusted end-of-life entries in database: FreeBSD, OpenBSD

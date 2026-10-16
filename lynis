@@ -848,6 +848,12 @@ ${NORMAL}
         . ${INCLUDEDIR}/binaries
     fi
     LogTextBreak
+
+    # Automatic database and signatures update if requested via CLI flag or profile
+    if [ ${AUTO_UPDATE_DB} -eq 1 ]; then
+        Display --indent 2 --text "- Automatic database and signatures update"
+        UpdateDatabases
+    fi
 #
 #################################################################################
 #

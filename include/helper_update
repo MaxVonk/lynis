@@ -46,6 +46,18 @@ if [ "$1" = "release" ]; then
 
     ${ECHOCMD} "Deprecated: this function is no longer available. Use a package (https://packages.cisofy.com), or deploy via a custom package or script."
 
+# Database and signatures update
+elif [ "$1" = "db" ] || [ "$1" = "database" ] || [ "$1" = "signatures" ]; then
+    echo ""
+    echo " == ${WHITE}${PROGRAM_NAME} Database & Signature Update${NORMAL} =="
+    echo ""
+    echo "  Update URL : ${DB_UPDATE_URL}"
+    echo "  Target dir : ${DBDIR}"
+    echo ""
+    UpdateDatabases
+    echo ""
+    ExitClean
+
 # Update check
 elif [ "$1" = "info" ]; then
 

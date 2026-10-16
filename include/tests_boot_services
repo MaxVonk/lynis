@@ -1091,8 +1091,17 @@
         Display --indent 2 --text "- Running 'systemd-analyze security'"
         Display --indent 6 --text "Unit name (exposure value) and predicate"
         Display --indent 6 --text "--------------------------------"
-        ${SYSTEMDANALYZEBINARY} security | while read UNIT EXPOSURE PREDICATE HAPPY; do
-            if [ "${UNIT}" = "UNIT" ]; then
+
+        SAFE_COUNT=0
+        MEDIUM_COUNT=0
+        UNSAFE_COUNT=0
+
+        CreateTempFile
+        SYSTEMD_SECURITY_OUT="${TEMP_FILE}"
+        ${SYSTEMDANALYZEBINARY} security > "${SYSTEMD_SECURITY_OUT}" 2>/dev/null
+
+        while read -r UNIT EXPOSURE PREDICATE HAPPY; do
+            if [ "${UNIT}" = "UNIT" ] || [ -z "${UNIT}" ]; then
                 continue
             fi
             STATUS="UNKNOWN"
@@ -1101,23 +1110,40 @@
                 PERFECT | SAFE | OK)
                     STATUS="${STATUS_PROTECTED}"
                     COLOR=GREEN
+                    SAFE_COUNT=$((SAFE_COUNT + 1))
                 ;;
                 MEDIUM)
                     STATUS="${STATUS_MEDIUM}"
                     COLOR=WHITE
+                    MEDIUM_COUNT=$((MEDIUM_COUNT + 1))
                 ;;
                 EXPOSED)
                     STATUS="${STATUS_EXPOSED}"
                     COLOR=YELLOW
+                    UNSAFE_COUNT=$((UNSAFE_COUNT + 1))
                 ;;
                 UNSAFE | DANGEROUS)
                     STATUS="${STATUS_UNSAFE}"
-                    COLOR=YELLOW
+                    COLOR=RED
+                    UNSAFE_COUNT=$((UNSAFE_COUNT + 1))
                 ;;
             esac
             Display --indent 4 --text "- ${UNIT} (value=${EXPOSURE})" --result "${STATUS}" --color "${COLOR}"
             LogText "Result: ${UNIT} has exposure value ${EXPOSURE} with predicate '${STATUS}'"
-        done
+            Report "systemd_service_exposure[]=${UNIT}|${EXPOSURE}|${PREDICATE}"
+        done < "${SYSTEMD_SECURITY_OUT}"
+        rm -f "${SYSTEMD_SECURITY_OUT}"
+
+        Report "systemd_services_safe_count=${SAFE_COUNT}"
+        Report "systemd_services_medium_count=${MEDIUM_COUNT}"
+        Report "systemd_services_unsafe_count=${UNSAFE_COUNT}"
+
+        if [ ${UNSAFE_COUNT} -gt 0 ]; then
+            ReportWarning "${TEST_NO}" "Unsafe systemd services detected with high exposure rating" "${UNSAFE_COUNT} exposed/unsafe services" "text:Run '${SYSTEMDANALYZEBINARY} security <unit>' to review sandboxing"
+            AddHP 1 4
+        else
+            AddHP 4 4
+        fi
         ReportSuggestion "${TEST_NO}" "Consider hardening system services" "Run '${SYSTEMDANALYZEBINARY} security SERVICE' for each service"
     fi
 #

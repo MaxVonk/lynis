@@ -1506,6 +1506,28 @@ EOF
 #
 #################################################################################
 #
+    # Test        : PKGS-7396
+    # Description : Check for deprecated APT trusted.gpg keyring
+    # Notes       : apt-key is deprecated on Debian/Ubuntu. Repositories should use Signed-By with /etc/apt/keyrings/*.gpg
+    if [ -n "${APTBINARY}" -a -f "${ROOTDIR}etc/apt/trusted.gpg" ]; then PREQS_MET="YES"; else PREQS_MET="NO"; fi
+    Register --test-no PKGS-7396 --preqs-met ${PREQS_MET} --weight L --network NO --category security --description "Check for deprecated APT trusted.gpg keyring"
+    if [ ${SKIPTEST} -eq 0 ]; then
+        if [ -s "${ROOTDIR}etc/apt/trusted.gpg" ]; then
+            Display --indent 2 --text "- Checking APT legacy trusted keyring (/etc/apt/trusted.gpg)" --result "${STATUS_WARNING}" --color YELLOW
+            LogText "Result: found deprecated /etc/apt/trusted.gpg containing legacy GPG keys"
+            ReportWarning "${TEST_NO}" "Deprecated APT trusted.gpg keyring contains active keys" "${ROOTDIR}etc/apt/trusted.gpg" "text:Migrate keys to /etc/apt/keyrings/ and use Signed-By in sources"
+            Report "apt_trusted_gpg_keys_found=1"
+            AddHP 1 3
+        else
+            Display --indent 2 --text "- Checking APT legacy trusted keyring (/etc/apt/trusted.gpg)" --result "${STATUS_OK}" --color GREEN
+            LogText "Result: /etc/apt/trusted.gpg is empty or not in use"
+            Report "apt_trusted_gpg_keys_found=0"
+            AddHP 3 3
+        fi
+    fi
+#
+#################################################################################
+#
 
 WaitForKeyPress
 
